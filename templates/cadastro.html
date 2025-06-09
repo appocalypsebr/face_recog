@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Cadastro de Usuário</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        #camera-stream, #captured-image { max-width: 100%; margin-bottom: 10px; }
+        #camera-controls { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+<div class="container mt-5">
+    <h2>Cadastro de Usuário</h2>
+    <form method="post" enctype="multipart/form-data" id="cadastro-form">
+        <div class="mb-3">
+            <label for="nome" class="form-label">Nome do Usuário</label>
+            <input type="text" class="form-control" id="nome" name="nome" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Fotos do Usuário (várias fotos aumentam a precisão)</label>
+            <input type="file" class="form-control mb-2" id="fotos" name="fotos" accept="image/*" multiple>
+            <div id="camera-controls">
+                <button type="button" class="btn btn-secondary" id="start-camera">Abrir Câmera</button>
+                <button type="button" class="btn btn-info" id="capture-photo" disabled>Tirar Foto</button>
+                <button type="button" class="btn btn-danger" id="close-camera" style="display:none;">Fechar Câmera</button>
+            </div>
+            <video id="camera-stream" width="320" height="240" autoplay style="display:none;"></video>
+            <canvas id="snapshot-canvas" width="320" height="240" style="display:none;"></canvas>
+            <img id="captured-image" style="display:none;"/>
+            <input type="hidden" id="webcam-photo" name="webcam_photo">
+        </div>
+        <button type="submit" class="btn btn-primary">Cadastrar</button>
+        <a href="/" class="btn btn-secondary">Voltar</a>
+    </form>
+</div>
+<script>
+const startCameraBtn = document.getElementById('start-camera');
+const capturePhotoBtn = document.getElementById('capture-photo');
+const closeCameraBtn = document.getElementById('close-camera');
+const video = document.getElementById('camera-stream');
+const canvas = document.getElementById('snapshot-canvas');
+const capturedImage = document.getElementById('captured-image');
+const webcamPhotoInput = document.getElementById('webcam-photo');
+let stream = null;
+
+startCameraBtn.onclick = async function() {
+    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+    video.style.display = 'block';
+    capturePhotoBtn.disabled = false;
+    closeCameraBtn.style.display = 'inline-block';
+    startCameraBtn.style.display = 'none';
+};
+
+capturePhotoBtn.onclick = function() {
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg');
+    capturedImage.src = dataUrl;
+    capturedImage.style.display = 'block';
+    webcamPhotoInput.value = dataUrl;
+};
+
+closeCameraBtn.onclick = function() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
+    video.style.display = 'none';
+    closeCameraBtn.style.display = 'none';
+    startCameraBtn.style.display = 'inline-block';
+    capturePhotoBtn.disabled = true;
+};
+</script>
+</body>
+</html>

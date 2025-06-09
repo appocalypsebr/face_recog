@@ -7,6 +7,8 @@
     <style>
         #camera-stream, #captured-image { max-width: 100%; margin-bottom: 10px; }
         #camera-controls { margin-bottom: 10px; }
+        .thumbs { display: flex; flex-wrap: wrap; gap: 10px; }
+        .thumbs img { width: 80px; height: 60px; object-fit: cover; border: 1px solid #ccc; }
     </style>
 </head>
 <body>
@@ -18,8 +20,7 @@
             <input type="text" class="form-control" id="nome" name="nome" required>
         </div>
         <div class="mb-3">
-            <label class="form-label">Fotos do Usuário (várias fotos aumentam a precisão)</label>
-            <input type="file" class="form-control mb-2" id="fotos" name="fotos" accept="image/*" multiple>
+            <label class="form-label">Tire pelo menos 4 fotos pela câmera</label>
             <div id="camera-controls">
                 <button type="button" class="btn btn-secondary" id="start-camera">Abrir Câmera</button>
                 <button type="button" class="btn btn-info" id="capture-photo" disabled>Tirar Foto</button>
@@ -27,10 +28,10 @@
             </div>
             <video id="camera-stream" width="320" height="240" autoplay style="display:none;"></video>
             <canvas id="snapshot-canvas" width="320" height="240" style="display:none;"></canvas>
-            <img id="captured-image" style="display:none;"/>
-            <input type="hidden" id="webcam-photo" name="webcam_photo">
+            <div class="thumbs" id="thumbs"></div>
+            <!-- Inputs para as fotos da webcam -->
         </div>
-        <button type="submit" class="btn btn-primary">Cadastrar</button>
+        <button type="submit" class="btn btn-primary" id="btn-cadastrar" disabled>Cadastrar</button>
         <a href="/" class="btn btn-secondary">Voltar</a>
     </form>
 </div>
@@ -40,9 +41,14 @@ const capturePhotoBtn = document.getElementById('capture-photo');
 const closeCameraBtn = document.getElementById('close-camera');
 const video = document.getElementById('camera-stream');
 const canvas = document.getElementById('snapshot-canvas');
-const capturedImage = document.getElementById('captured-image');
-const webcamPhotoInput = document.getElementById('webcam-photo');
+const thumbs = document.getElementById('thumbs');
+const btnCadastrar = document.getElementById('btn-cadastrar');
 let stream = null;
+let webcamPhotos = [];
+
+function updateCadastrarButton() {
+    btnCadastrar.disabled = webcamPhotos.length < 4;
+}
 
 startCameraBtn.onclick = async function() {
     stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -56,9 +62,18 @@ startCameraBtn.onclick = async function() {
 capturePhotoBtn.onclick = function() {
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/jpeg');
-    capturedImage.src = dataUrl;
-    capturedImage.style.display = 'block';
-    webcamPhotoInput.value = dataUrl;
+    webcamPhotos.push(dataUrl);
+    // Mostra miniaturas
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    thumbs.appendChild(img);
+    // Cria input hidden para cada foto
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'webcam_photo';
+    input.value = dataUrl;
+    document.getElementById('cadastro-form').appendChild(input);
+    updateCadastrarButton();
 };
 
 closeCameraBtn.onclick = function() {
@@ -70,6 +85,9 @@ closeCameraBtn.onclick = function() {
     startCameraBtn.style.display = 'inline-block';
     capturePhotoBtn.disabled = true;
 };
+
+// Bloqueia o submit se não houver 4 fotos
+updateCadastrarButton();
 </script>
 </body>
 </html>

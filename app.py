@@ -62,22 +62,17 @@ def index():
 def cadastro():
     if request.method == 'POST':
         nome = request.form['nome'].strip().lower()
-        fotos = request.files.getlist('fotos')
-        webcam_photo = request.form.get('webcam_photo')
-        if not nome or (not fotos or not any(fotos)) and not webcam_photo:
-            flash('Preencha o nome e selecione pelo menos uma foto ou use a câmera.')
+        # Não aceita upload, só fotos da webcam
+        webcam_photos = request.form.getlist('webcam_photo')
+        webcam_photos = [w for w in webcam_photos if w and w.startswith('data:image')]
+        num_fotos_existentes = len([f for f in os.listdir(app.config['UPLOAD_FOLDER']) if f.startswith(nome + '_')])
+        total_fotos = len(webcam_photos) + num_fotos_existentes
+        if not nome or total_fotos < 4:
+            flash('Tire pelo menos 4 fotos pela câmera para cadastro.')
             return redirect(request.url)
-        foto_count = len([f for f in os.listdir(app.config['UPLOAD_FOLDER']) if f.startswith(nome + '_')])
-        # Salva fotos do upload
-        for i, foto in enumerate(fotos):
-            if foto and allowed_file(foto.filename):
-                filename = f"{nome}_{foto_count + i}.jpg"
-                path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                img = Image.open(foto.stream).convert('RGB')
-                img.save(path)
-        # Salva foto da webcam
-        if webcam_photo and webcam_photo.startswith('data:image'):
-            filename = f"{nome}_{foto_count + len(fotos)}.jpg"
+        # Salva todas as fotos da webcam com o nome do usuário
+        for j, webcam_photo in enumerate(webcam_photos):
+            filename = f"{nome}_{num_fotos_existentes + j}.jpg"
             path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             save_base64_image(webcam_photo, path)
         treinado = train_model()
@@ -108,7 +103,7 @@ def verificar():
             rostos = face_cascade.detectMultiScale(gray, 1.3, 5)
             if len(rostos) > 0 and faces:
                 inv_label_map = {v: k for k, v in label_map.items()}
-                limiar_confianca = 40
+                limiar_confianca = 60
                 for (x, y, w, h) in rostos:
                     face = gray[y:y+h, x:x+w]
                     face = cv2.resize(face, (200, 200))
